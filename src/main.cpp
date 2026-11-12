@@ -11,8 +11,11 @@
  */
 
 #include <Arduino.h>
+
 #include <ArduinoJson.h>
 #include <PTITCube.h>
+
+PTIT_CDH cdh;
 
 // Khởi tạo các phân hệ
 PTIT_COM lora;
@@ -23,27 +26,24 @@ PTIT_GPS gps;
 #define LED_PIN 2
 
 void setup() {
-    Serial.begin(115200);
-    while (!Serial) { delay(10); }
+    cdh.begin(115200);
+    while (!cdh) { delay(10); }
 
-    Serial.println("\n==========================================");
-    Serial.println("  VỆ TINH (SATELLITE) ĐANG KHỞI ĐỘNG...");
-    Serial.println("==========================================");
-    
+        cdh.println("  VỆ TINH (SATELLITE) ĐANG KHỞI ĐỘNG...");
+        
     pinMode(LED_PIN, OUTPUT);
     digitalWrite(LED_PIN, LOW);
 
     // Khởi tạo các module
-    Serial.println("[INIT] Đang khởi tạo LoRa...");
+    cdh.println("[INIT] Đang khởi tạo LoRa...");
     lora.init();
     
-    Serial.println("[INIT] Đang khởi tạo Cảm biến và Nguồn...");
+    cdh.println("[INIT] Đang khởi tạo Cảm biến và Nguồn...");
     eps.init();
     sensor.init(); 
     gps.init();
 
-    Serial.println("==========================================");
-    Serial.println("VỆ TINH SẴN SÀNG NHẬN LỆNH TỪ TRẠM MẶT ĐẤT");
+        cdh.println("VỆ TINH SẴN SÀNG NHẬN LỆNH TỪ TRẠM MẶT ĐẤT");
 }
 
 void loop() {
@@ -58,7 +58,7 @@ void loop() {
         incomingCmd.trim();
         incomingCmd.toLowerCase(); // Chuẩn hóa chữ thường
         
-        Serial.println("\n[RX] Nhận được lệnh từ mặt đất: " + incomingCmd);
+        cdh.println("\n[RX] Nhận được lệnh từ mặt đất: " + incomingCmd);
 
         // --- XỬ LÝ CÁC LỆNH (COMMANDS) ---
         
