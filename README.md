@@ -12,11 +12,11 @@ Chương trình dành cho node thu Trạm mặt đất: Bắt gói tin LoRa từ
 
 ---
 
-## 🔌 2. Sơ Đồ Chân Phần Cứng (Hardware Pinout)
+## 🔌 2. Sơ Đồ Chân Phần Cứng (Hardware Pinout chuẩn PTITCube.h)
 
 | Tín hiệu | Chân ESP32 | Mô tả |
 | :--- | :--- | :--- |
-| LoRa E32 Node Trạm | UART2 (RX=16, TX=17, AUX=4) | Node thu trạm mặt đất 433 MHz |
+| LoRa E32 Node Trạm | UART1 (RX=26, TX=25, AUX=27, M0=32, M1=33) | Node thu trạm mặt đất 433 MHz |
 
 ---
 
@@ -26,7 +26,7 @@ Chương trình dành cho node thu Trạm mặt đất: Bắt gói tin LoRa từ
   - `CDH`: Quản lý luồng xuất nhập dữ liệu `cdh` (Stream inheritance) và hệ thống tệp FAT32 trên thẻ nhớ MicroSD.
   - `EPS`: Quản lý năng lượng, đọc IC MAX17048 qua I2C.
   - `Sensor`: Đọc cụm cảm biến môi trường BMP280, cảm biến quán tính 6-DoF MPU6500, từ kế QMC5883L và định vị GNSS L76X.
-  - `COM`: Quản lý module vô tuyến LoRa Ebyte E32 qua giao tiếp UART2.
+  - `COM`: Quản lý module vô tuyến LoRa Ebyte E32 qua giao tiếp UART1.
 - **Kênh giám sát Console:**
   - **Công cụ:** `cdh (PTIT_CDH stream - 115200 baud)`
   - **Tốc độ Baud:** `115200 bps`
