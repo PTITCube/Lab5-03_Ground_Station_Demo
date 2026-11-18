@@ -1,17 +1,19 @@
 /**
- * VÍ DỤ TỔNG HỢP: HỆ THỐNG GIAO TIẾP VỆ TINH FULL DUPLEX (COMMAND & TELEMETRY)
+ * VÍ DỤ TỔNG HỢP (LAB 5-03): HỆ THỐNG GIAO TIẾP VỆ TINH FULL DUPLEX (COMMAND & TELEMETRY)
  * 
- * Lưu ý: Trạm mặt đất (Ground Station) sử dụng mạch USB-TTL nối trực tiếp với module LoRa,
- * do đó đoạn code này được nạp vào Vệ Tinh (OBC ESP32).
+ * Mô tả:
+ * - Mã nguồn này được nạp vào Vệ Tinh (OBC ESP32).
+ * - Trạm mặt đất (Ground Station) sử dụng module LoRa gắn USB-TTL hoặc bo ESP32 làm Receiver.
  * 
- * Nhiệm vụ của Vệ tinh:
- * 1. Lắng nghe liên tục lệnh (Command) từ Trạm mặt đất qua LoRa.
- * 2. Thực thi lệnh tương ứng (Đo pin, đọc cảm biến, chụp ảnh...).
- * 3. Đóng gói dữ liệu và phản hồi lại Trạm mặt đất qua LoRa.
+ * Luồng hoạt động:
+ * 1. Vệ tinh lắng nghe lệnh từ trạm mặt đất qua sóng LoRa (Kênh 23, Chế độ Transparent).
+ * 2. Khi nhận lệnh (ping, battery, sensor, imu, gps, led on/off, telemetry):
+ *    - Thực thi tác vụ tương ứng.
+ *    - In xác nhận ra Serial Monitor (CDH).
+ *    - Phản hồi kết quả ngược về Trạm mặt đất qua sóng LoRa.
  */
 
 #include <Arduino.h>
-
 #include <ArduinoJson.h>
 #include <PTITCube.h>
 
@@ -29,21 +31,26 @@ void setup() {
     cdh.begin(115200);
     while (!cdh) { delay(10); }
 
-        cdh.println("  VỆ TINH (SATELLITE) ĐANG KHỞI ĐỘNG...");
+    cdh.println("\n=================================================");
+    cdh.println("    VỆ TINH PTITCUBE - PHÂN HỆ TRUYỀN THÔNG COM   ");
+    cdh.println("=================================================");
         
     pinMode(LED_PIN, OUTPUT);
     digitalWrite(LED_PIN, LOW);
 
-    // Khởi tạo các module
+    // 1. Khởi tạo và cấu hình LoRa đồng bộ với Trạm mặt đất
     cdh.println("[INIT] Đang khởi tạo LoRa...");
     lora.init();
+    lora.setChannel(23);           // Kênh 23 (433 MHz), khớp hoàn toàn với trạm mặt đất
+    lora.setTransmissionMode(0);   // Chế độ Transparent (0) để truyền nhận 2 chiều
     
+    // 2. Khởi tạo các phân hệ tải và cảm biến
     cdh.println("[INIT] Đang khởi tạo Cảm biến và Nguồn...");
     eps.init();
     sensor.init(); 
     gps.init();
 
-        cdh.println("VỆ TINH SẴN SÀNG NHẬN LỆNH TỪ TRẠM MẶT ĐẤT");
+    cdh.println("[READY] Vệ tinh đã sẵn sàng nhận lệnh từ trạm mặt đất!");
 }
 
 void loop() {
@@ -60,46 +67,50 @@ void loop() {
         
         cdh.println("\n[RX] Nhận được lệnh từ mặt đất: " + incomingCmd);
 
-        // --- XỬ LÝ CÁC LỆNH (COMMANDS) ---
+        // Chờ transceiver ổn định trạng thái chuyển mạch RX -> TX
+        delay(20);
+
+        String reply = "";
+
+        // --- XỬ LÝ CÁC LỆNH (COMMANDS) & TẠO PHẢN HỒI ---
         
-        if (incomingCmd == "ping") {
-            lora.sendMessage("pong - Vệ tinh đang hoạt động tốt!");
+        if (incomingCmd.indexOf("ping") != -1) {
+            reply = "pong - Vệ tinh đang hoạt động tốt!";
         } 
-        else if (incomingCmd == "battery" || incomingCmd == "bat") {
+        else if (incomingCmd.indexOf("battery") != -1 || incomingCmd.indexOf("bat") != -1) {
             float v = eps.getBatteryVoltage();
             char buffer[64];
             snprintf(buffer, sizeof(buffer), "Điện áp Pin vệ tinh: %.2f V", v);
-            lora.sendMessage(String(buffer));
+            reply = String(buffer);
         }
-        else if (incomingCmd == "sensor" || incomingCmd == "env") {
+        else if (incomingCmd.indexOf("sensor") != -1 || incomingCmd.indexOf("env") != -1) {
             float t = sensor.getTemperature();
             float p = sensor.getPressure();
             char buffer[64];
             snprintf(buffer, sizeof(buffer), "Nhiệt độ: %.2f C | Áp suất: %.1f hPa", t, p);
-            lora.sendMessage(String(buffer));
+            reply = String(buffer);
         }
-        else if (incomingCmd == "imu") {
+        else if (incomingCmd.indexOf("imu") != -1) {
             char buffer[128];
             snprintf(buffer, sizeof(buffer), "Gia tốc (X:%.1f Y:%.1f Z:%.1f) | Gyro (X:%.1f Y:%.1f Z:%.1f)", 
                      sensor.getAccX(), sensor.getAccY(), sensor.getAccZ(),
                      sensor.getGyroX(), sensor.getGyroY(), sensor.getGyroZ());
-            lora.sendMessage(String(buffer));
+            reply = String(buffer);
         }
-        else if (incomingCmd == "gps") {
+        else if (incomingCmd.indexOf("gps") != -1) {
             char buffer[64];
             snprintf(buffer, sizeof(buffer), "GPS: Lat %f, Lng %f", gps.getLat(), gps.getLng());
-            lora.sendMessage(String(buffer));
+            reply = String(buffer);
         }
-        else if (incomingCmd == "led on") {
+        else if (incomingCmd.indexOf("led on") != -1) {
             digitalWrite(LED_PIN, HIGH);
-            lora.sendMessage("Đã bật LED trên OBC.");
+            reply = "Đã bật LED trên OBC.";
         }
-        else if (incomingCmd == "led off") {
+        else if (incomingCmd.indexOf("led off") != -1) {
             digitalWrite(LED_PIN, LOW);
-            lora.sendMessage("Đã tắt LED trên OBC.");
+            reply = "Đã tắt LED trên OBC.";
         }
-        else if (incomingCmd == "telemetry") {
-            // Gửi một gói JSON chứa toàn bộ trạng thái
+        else if (incomingCmd.indexOf("telemetry") != -1) {
             JsonDocument doc;
             doc["battery_v"] = eps.getBatteryVoltage();
             doc["temp"] = sensor.getTemperature();
@@ -109,13 +120,14 @@ void loop() {
             
             String jsonOutput;
             serializeJson(doc, jsonOutput);
-            lora.sendMessage(jsonOutput);
+            reply = jsonOutput;
         }
         else {
-            lora.sendMessage("Lỗi: Lệnh [" + incomingCmd + "] không hợp lệ! Các lệnh hỗ trợ: ping, battery, sensor, imu, gps, led on/off, telemetry.");
+            reply = "Lỗi: Lệnh [" + incomingCmd + "] không hợp lệ! Các lệnh: ping, bat, sensor, imu, gps, led on/off, telemetry";
         }
-    }
 
-    // Tuỳ chọn: Có thể cấu hình vệ tinh tự động bắn Telemetry mỗi 5 giây mà không cần lệnh
-    // Bằng cách sử dụng millis() ở đây.
+        // Phát phản hồi ngược về Trạm mặt đất qua sóng LoRa
+        cdh.println("[TX] Gửi phản hồi về trạm mặt đất: " + reply);
+        lora.sendMessage(reply);
+    }
 }
