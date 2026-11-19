@@ -28,7 +28,7 @@ void setup() {
     sensor.init();
     gps.init();
 
-    cdh.println("[COM] Satellite Ground Station Demo ready.");
+    cdh.println("COM: Satellite Ground Station Demo ready.");
 }
 
 void loop() {
@@ -41,7 +41,7 @@ void loop() {
         incomingCmd.trim();
         incomingCmd.toLowerCase();
         
-        cdh.println("[RX] Cmd: " + incomingCmd);
+        cdh.println("RX: Cmd: " + incomingCmd);
         delay(20);
 
         String reply = "";
@@ -94,7 +94,7 @@ void loop() {
             reply = "ERR: Unknown cmd [" + incomingCmd + "]";
         }
 
-        cdh.println("[TX] " + reply);
+        cdh.println("TX: " + reply);
         lora.sendMessage(reply);
     }
 }
