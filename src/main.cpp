@@ -15,7 +15,7 @@ PTIT_GPS gps;
 #define LED_PIN 2
 
 void setup() {
-    cdh.begin(115200);
+    cdh.begin();
 
     pinMode(LED_PIN, OUTPUT);
     digitalWrite(LED_PIN, LOW);
